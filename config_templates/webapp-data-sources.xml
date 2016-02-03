@@ -23,20 +23,21 @@ xsi:schemaLocation="
     The Geocoder is used in the SMS interface for determining your default search location. The DefaultGeocoderImpl doesn't actually do much geocoding... it's just there for testing
 -->
 <bean id="externalGeocoderImpl" class="org.onebusaway.geocoder.impl.FixedGeocoderImpl">
-    <property name="lat" value="42.32451" />
-    <property name="lon" value="-122.8717556" />
-    <property name="city" value="Medford" />
-    <property name="state" value="OR" />
-    <property name="postalCode" value="97501" />
+    <property name="lat" value="{geocode_center_lat}" />
+    <property name="lon" value="{geocode_center_lon}" />
+    <property name="city" value="{geocode_center_city}" />
+    <property name="state" value="{geocode_center_state}" />
+    <property name="postalCode" value="{geocode_center_zip}" />
 </bean>
 
+<!-- Service Area Bounds -->
 <bean id="serviceAreaServiceImpl" class="org.onebusaway.presentation.impl.ServiceAreaServiceImpl">
     <property name="defaultBounds">
       <bean class="org.onebusaway.geospatial.model.CoordinateBounds">
-        <property name="minLat" value="42.175" />
-        <property name="minLon" value="-122.97" />
-        <property name="maxLat" value="42.445" />
-        <property name="maxLon" value="-122.671" />
+        <property name="minLat" value="{service_area_bounds_min_lat}" />
+        <property name="minLon" value="{service_area_bounds_min_lon}" />
+        <property name="maxLat" value="{service_area_bounds_max_lat}" />
+        <property name="maxLon" value="{service_area_bounds_max_lon}" />
       </bean>
     </property>
     <property name="calculateDefaultBoundsFromAgencyCoverage" value="false" />

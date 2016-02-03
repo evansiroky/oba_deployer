@@ -1,6 +1,6 @@
 # OneBusAway-RVTD Deployer
 
-Script(s) to deploy and manage OneBusAway on Amazon EC2 for Rogue Valley Transportation District (RVTD)
+Script(s) to deploy and manage OneBusAway on Amazon EC2
 
 ## Table of Contents
 

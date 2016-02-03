@@ -1,9 +1,8 @@
 import sys
 
-from oba_rvtd_deployer.aws import launch_new, tear_down
-from oba_rvtd_deployer.gtfs import validate_gtfs, update
-from oba_rvtd_deployer.oba import install, deploy, start, copy_gwt,\
-    install_watchdog
+from oba_deployer.aws import prepare_new
+from oba_deployer.gtfs import validate_gtfs, update
+from oba_deployer.oba import install, start, deploy_webapps, install_and_start_watchdog
 
 
 def run_all():
@@ -16,7 +15,7 @@ def run_all():
         sys.exit()
     
     # setup new EC2 instance
-    instance = launch_new()
+    instance = prepare_new()
     
     public_dns_name = instance.public_dns_name
     
@@ -25,17 +24,11 @@ def run_all():
     
     # update GTFS, make new bundle
     update(public_dns_name)
-
-    # deploy webapps to tomcat
-    deploy(public_dns_name)
     
     # start server
     start(public_dns_name)
-
-    # move GWT files to production webapp dir
-    copy_gwt(public_dns_name)
     
     # install watchdog python script
-    install_watchdog(public_dns_name)
+    install_and_start_watchdog(public_dns_name)
     
     print('Deployment of new server has finished.  Please follow steps: OneBusAway Setup and xWiki Setup')

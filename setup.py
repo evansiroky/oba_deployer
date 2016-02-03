@@ -1,35 +1,32 @@
 from setuptools import setup, find_packages
  
 setup(
-    name='oba_rvtd_deployer',
+    name='oba_deployer',
     packages=find_packages(),
     install_requires=[
-        'requests>=2.5.3',
-        'boto>=2.38',
+        'deploy_utils>=0.2.0',
+        'django-fab-deploy>=0.7.5',
         'fabric>=1.10.1',
+        'requests>=2.5.3',
         'transitfeed>=1.2.14'
     ],
     entry_points={
         'console_scripts': [
             # config scripts
-            'clean_config=oba_rvtd_deployer.config:clean',
-            'setup_config=oba_rvtd_deployer.config:setup_all',
+            'clean_config=oba_deployer.config:clean',
+            'setup_config=oba_deployer.config:setup_all',
             
             # aws/oba installation
-            'launch_new_ec2=oba_rvtd_deployer.aws:launch_new',
-            'tear_down_ec2=oba_rvtd_deployer.aws:tear_down',
-            'install_oba=oba_rvtd_deployer.oba:install',
-            'install_watchdog=oba_rvtd_deployer.oba:install_watchdog',
-            
+            'prepare_new_oba_ec2=oba_deployer.aws:prepare_new',
+            'install_oba=oba_deployer.oba:install',
+
             # oba/gtfs activation
-            'validate_gtfs=oba_rvtd_deployer.gtfs:validate_gtfs',
-            'update_gtfs=oba_rvtd_deployer.gtfs:update',
-            'deploy_oba=oba_rvtd_deployer.oba:deploy',
-            'start_oba=oba_rvtd_deployer.oba:start',
-            'stop_oba=oba_rvtd_deployer.oba:stop',
-            
+            'validate_gtfs=oba_deployer.gtfs:validate_gtfs',
+            'update_gtfs=oba_deployer.gtfs:update',
+            'start_oba=oba_deployer.oba:start',
+
             # one command new deployment
-            'deploy_master=oba_rvtd_deployer.master:run_all'
+            'deploy_new_oba=oba_deployer.master:run_all'
         ]
     }
 )
