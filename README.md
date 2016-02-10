@@ -56,19 +56,22 @@ You'll need to create a bunch of config files before running the deployment scri
 
 | Setting Name | Description |
 | --- | --- |
-| ami_id | The base ami to start from.  Defaults to `ami-3689325f` (Amazon Linux). |
+| ami_id | The base ami to start from.  Use Amazon Linux and find the appropriate AMI ID depending on your AWS region. |
 | aws_access_key_id | Access key for account. |
 | aws_secret_access_key | Secret access key for account. |
-| delete_volumes_on_tear_down | When tearing down instance, also delete volumes.  If using CentOS, you should set this to `true`.  Defaults to `false`.
+| block_device_map | Where to attach storage to EC2 unit.  Use `/dev/xvda` for Amazon Linux. |
+| cron_email | An email address to send cron errors to. |
+| delete_volumes_on_tear_down | When tearing down instance, also delete volumes.  If using CentOS, you should set this to `true`.  Defaults to `false`. |
+| elastic_ip | The AWS elastic ip for the onebusaway-webapp to refenece when making xwiki calls.  Note that you'll still need to manually associate an elastic IP in the AWS console. |
 | key_filename | The filename of your .pem file. |
-| key_name | The name of the secret key for the EC2 instance to use. |
+| key_pair_name | The key pair name for the EC2 instance to use. |
 | instance_name | The name to tag the instance with. |
-| instance_type | The EC2 instance type.  [(See instance types)](http://aws.amazon.com/ec2/pricing/). |
+| instance_type | The EC2 instance type.  [(See instance types)](http://aws.amazon.com/ec2/pricing/).  It is recommended to use at least `t2.medium`. |
 | region | The AWS region to connect to. |
 | security_groups | Security groups to grant to the instance.  If more than one, seperate with commas. |
 | timezone | The linux timezone to set the machine to.  Use a path on the machine such as `/usr/share/zoneinfo/America/Los_Angeles`. |
-| user | The user to login as when connecting via ssh.  Defaults to `ec2-user`. |
-| volume_size | Size of the AWS Volume for the new instance in GB.  Defaults to `12`. | 
+| user | The user to login as when connecting via ssh.  Use `ec2-user` with Amazon Linux. |
+| volume_size | Size of the AWS Volume for the new instance in GB.  It is recommended to use at least `12`. |
 
 ### gtfs.ini
 
@@ -78,17 +81,28 @@ You'll need to create a bunch of config files before running the deployment scri
 | gtfs_rt_trip_updates_url | The url for the gtfs-rt trip updates. |
 | gtfs_rt_service_alerts_url | The url for the gtfs-rt service alerts. |
 | gtfs_rt_vehicle_positions_url | The url for the gtfs-rt vehicle positions. |
+| extra_bundle_build_args | Extra arguments to provide when building a bundle.  Example: `-P tripEntriesFactory.throwExceptionOnInvalidStopToShapeMappingException=false` |
 
 ### oba.ini
 
 | Setting Name | Description |
 | --- | --- |
 | allow_api_test_key | Whether or not to set a test key for the api-webapp.  Set to `true` if desired. |
-| oba_base_folder | OneBusAway based folder.  Defaults to `onebusaway-application-modules-rvtd`. |
-| oba_git_branch | OneBusAway git branch to checkout.  Defaults to `rvtd-1.1.13.install`. |
-| oba_git_repo | OneBusAway git repo to checkout from.  Defaults to `https://github.com/trilliumtransit/onebusaway-application-modules-rvtd.git`. |
-| pg_username | The role that OneBusAway will use when connecting to postgresql. |
+| oba_base_folder | OneBusAway based folder.  Recommended value: `onebusaway-application-modules`. |
+| oba_git_branch | OneBusAway git branch to checkout.  Example: `1.1.12`. |
+| oba_git_repo | OneBusAway git repo to checkout from.  Example:  `https://github.com/OneBusAway/onebusaway-application-modules.git`. |
+| pg_username | The user that OneBusAway will use when connecting to postgresql. |
 | pg_password | The password that OneBusAway will use when connecting to postgresql. |
+| pg_role | Role to assign the OneBusAway user during db setup. |
+| geocode_center_lat  | Center latitude to use for OBA instance. |
+| geocode_center_lon  | Center longitude to use for OBA instance. |
+| geocode_center_city  | Center city to use for OBA instance. |
+| geocode_center_state  | Center state to use for OBA instance. |
+| geocode_center_zip  | Center zip code to use for OBA instance. |
+| service_area_bounds_min_lat  | Service area boundary for OBA instance. |
+| service_area_bounds_min_lon  | .. |
+| service_area_bounds_max_lat  | .. |
+| service_area_bounds_max_lon  | .. |
 
 ## Running Scripts
 
@@ -98,15 +112,13 @@ If using linux, the executable files to run scripts will be in the `bin` folder 
 | --- | --- |
 | clean_config | Deletes the "config" folder. |
 | setup_config | Helper script to create configuration files for AWS, OneBusAway and updating and validating GTFS. |
-| launch_new_ec2 | Launches a new Amazon EC2 instance and installs the essential software to run OneBusAway.  User will be prompted to manually disable IPv6 and setup PostgreSQL. |
-| tear_down_ec2 | Terminates an Amazon EC2 instance. |
-| install_oba | Installs OneBusAway on server by compiling with maven. |
+| prepare_new_oba_ec2 | Launches a new Amazon EC2 instance and installs the essential software to run OneBusAway. |
+| install_oba | Installs OneBusAway on server by building webapps with maven. |
 | validate_gtfs | Downloads and validates the static GTFS. |
-| update_gtfs | Creates a new data bundle for OneBusAway. Validate the GTFS if no GTFS file found. |
-| deploy_oba | Deploys the OneBusAway webapps to Tomcat. |
+| update_gtfs | Creates a new data bundle for OneBusAway on the EC2 instance. Validate the GTFS if no GTFS file found. |
 | start_oba | Starts Tomcat and xWiki Servers. |
-| stop_oba | Stops Tomcat and xWiki Servers. |
-| deploy_master | Combines following scripts in order: launch_new_ec2, install_oba, update_gtfs, deploy_oba, start_oba.  Be sure to manually setup OneBusAway and xWiki after the server is ready. |
+| install_and_start_watchdog | Installs and starts watchdog on the EC2 instance. |
+| deploy_new_oba | Combines following scripts in order: `prepare_new_oba_ec2`, `install_oba`, `update_gtfs`, `start_oba`, `install_and_start_watchdog`.  Be sure to manually setup OneBusAway and xWiki after the server is ready. |
 
 ## Watchdog Setup
 
@@ -148,14 +160,14 @@ Here is a complete list of stuff that this script install/does on the instance:
 * Installs git
 * Installs java-1.7.0-openjdk and java-1.7.0-openjdk-devel
 * Installs maven (to /usr/local/)
-* Installs tomcat 
+* Installs tomcat
   - to /home/{user}/tomcat/
   - Adds a startup script to start tomcat on reboot
 * Installs xWiki
   - to /usr/local/xwiki
   - Adds a startup script to start xwiki on reboot
   - This process downloads a 700mb package, so it may take a while.
-* Clones [onebusaway-application-modules-rvtd](https://github.com/trilliumtransit/onebusaway-application-modules-rvtd)
+* Clones [onebusaway-application-modules](https://github.com/OneBusAway/onebusaway-application-modules) repo as specified in config.
 * Builds the following webapps from source using maven:
   - onebusaway-transit-data-federation-webapp
   - onebusaway-api-webapp
