@@ -59,9 +59,10 @@ target/
 /Lib
 /Scripts
 
-#eclipse
+#IDE
 .project
 .pydevproject
+.idea
 
 #project-level-exclusions
 /config
