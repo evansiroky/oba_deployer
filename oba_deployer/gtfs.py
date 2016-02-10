@@ -30,8 +30,8 @@ conf_helper = ConfigHelper(CONFIG_DIR, CONFIG_TEMPLATE_DIR)
 
 class GtfsFab(OBAFab):
 
-    def __init__(self, **kwargs):
-        super(GtfsFab, self).__init__(**kwargs)
+    def __init__(self, host_name, aws_conf, gtfs_conf, oba_conf):
+        OBAFab.__init__(self, host_name, aws_conf, gtfs_conf, oba_conf)
         self.federation_builder_folder = unix_path_join('/home',
                                                         self.user,
                                                         self.oba_base_folder,
@@ -60,10 +60,12 @@ class GtfsFab(OBAFab):
                                 'transit_data_federation',
                                 'bundle',
                                 'FederatedTransitDataBundleCreatorMain'])
+        more_args = self.gtfs_conf.get('extra_bundle_build_args')
         with cd(self.federation_builder_folder):
-            run('java -classpath .:target/* {0} {1} {2}'.format(bundle_main,
-                                                                remote_gtfs_file,
-                                                                self.bundle_dir))
+            run('java -classpath .:target/* {0} {1} {2} {3}'.format(bundle_main,
+                                                                    remote_gtfs_file,
+                                                                    self.bundle_dir,
+                                                                    more_args))
             
     def install_gtfs_update_crontab(self):
         '''Installs and starts a crontab to automatically dl and build a data bundle nightly.
@@ -75,6 +77,7 @@ class GtfsFab(OBAFab):
                                 gtfs_dl_logfile=unix_path_join(self.data_dir, 'nightly_dl.out'),
                                 federation_builder_folder=self.federation_builder_folder,
                                 bundle_dir=self.bundle_dir,
+                                extra_args=self.gtfs_conf.get('extra_bundle_build_args'),
                                 user=self.user,
                                 cron_email=self.aws_conf.get('cron_email'),
                                 from_mailer=env.host_string)

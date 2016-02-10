@@ -19,7 +19,7 @@ conf_helper = ConfigHelper(CONFIG_DIR, CONFIG_TEMPLATE_DIR)
 class OBAFab(AmazonLinuxFab):
 
     def __init__(self, host_name, aws_conf, gtfs_conf=None, oba_conf=None):
-        super(OBAFab, self).__init__(aws_conf, host_name)
+        AmazonLinuxFab.__init__(self, aws_conf, host_name)
         self.aws_conf = aws_conf
         self.gtfs_conf = gtfs_conf
         self.oba_conf = oba_conf

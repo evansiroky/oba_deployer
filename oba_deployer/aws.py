@@ -26,12 +26,12 @@ class AwsFab(OBAFab):
         '''
         
         # get tomcat from direct download
-        run('wget http://mirror.cc.columbia.edu/pub/software/apache/tomcat/tomcat-7/v7.0.65/bin/apache-tomcat-7.0.65.tar.gz')
+        run('wget http://www.eu.apache.org/dist/tomcat/tomcat-7/v7.0.67/bin/apache-tomcat-7.0.67.tar.gz')
         
         # move to a local area for better organization
-        run('tar xzf apache-tomcat-7.0.65.tar.gz')
-        run('rm -rf apache-tomcat-7.0.65.tar.gz')
-        run('mv apache-tomcat-7.0.65 tomcat')
+        run('tar xzf apache-tomcat-7.0.67.tar.gz')
+        run('rm -rf apache-tomcat-7.0.67.tar.gz')
+        run('mv apache-tomcat-7.0.67 tomcat')
                     
         # add logging rotation for catalina.out
         self.populate_and_upload_template_file(dict(user=self.user),

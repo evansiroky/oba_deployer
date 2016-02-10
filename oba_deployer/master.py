@@ -2,7 +2,7 @@ import sys
 
 from oba_deployer.aws import prepare_new
 from oba_deployer.gtfs import validate_gtfs, update
-from oba_deployer.oba import install, start, deploy_webapps, install_and_start_watchdog
+from oba_deployer.oba import install, start, install_and_start_watchdog
 
 
 def run_all():
