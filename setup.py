@@ -4,9 +4,9 @@ setup(
     name='oba_deployer',
     packages=find_packages(),
     install_requires=[
-        'deploy_utils>=0.3.0',
+        'deploy_utils>=1.0.0',
         'django-fab-deploy>=0.7.5',
-        'fabric>=1.10.1',
+        'fabric>=1.10.1,<2',
         'requests>=2.5.3',
         'transitfeed>=1.2.14'
     ],

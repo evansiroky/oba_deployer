@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+    {bundle_beans_definition}
+
+    {bundle_beans}
+
+    <!-- Need a mechanism to combine stops from different feeds? -->
+    <!--<bean id="entityReplacementStrategyFactory" class="org.onebusaway.transit_data_federation.bundle.tasks.EntityReplacementStrategyFactory">-->
+    <!--<property name="entityMappings">-->
+    <!--<map>-->
+    <!--<entry key="org.onebusaway.gtfs.model.Stop" value="path/to/PugetSoundStopConsolidation.wiki" />-->
+    <!--</map>-->
+    <!--</property>-->
+    <!--</bean>-->
+    <!--<bean id="entityReplacementStrategy" factory-bean="entityReplacementStrategyFactory" factory-method="create"/>-->
+
+</beans>
