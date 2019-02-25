@@ -32,29 +32,34 @@ xsi:schemaLocation="
 <!-- Service that is used to verify API keys -->
 <bean id="apiKeyValidationService" class="org.onebusaway.users.impl.validation.KeyValidationServiceImpl" />
 
-<!-- Official OBA Android App API Key -->
+<!-- iOS Client key -->
 <bean class="org.onebusaway.users.impl.CreateApiKeyAction">
- 	<property name="key" value="v1_BktoDJ2gJlu6nLM6LsT9H8IUbWc=cGF1bGN3YXR0c0BnbWFpbC5jb20="/>
+    <property name="key" value="org.onebusaway.iphone"/>
 </bean>
 
-<!-- Official OBA iPhone App API Key -->
+<!-- Android Client key -->
 <bean class="org.onebusaway.users.impl.CreateApiKeyAction">
- 	<property name="key" value="org.onebusaway.iphone"/>
+    <property name="key" value="v1_BktoDJ2gJlu6nLM6LsT9H8IUbWc=cGF1bGN3YXR0c0BnbWFpbC5jb20="/>
 </bean>
 
-<!-- Official OBA Windows Phone/Fire Phone App API Key -->
+<!-- Windows Phone Client key -->
 <bean class="org.onebusaway.users.impl.CreateApiKeyAction">
- 	<property name="key" value="v1_C5+aiesgg8DxpmG1yS2F/pj2zHk=c3BoZW5yeUBnbWFpbC5jb20=="/>
+    <property name="key" value="v1_C5+aiesgg8DxpmG1yS2F/pj2zHk=c3BoZW5yeUBnbWFpbC5jb20=="/>
 </bean>
 
-<!-- Official OBA Windows 8 App API Key -->
+<!-- Windows 8 Client key -->
 <bean class="org.onebusaway.users.impl.CreateApiKeyAction">
- 	<property name="key" value="693c0a55-9ef0-4302-8bc3-f9b2db93e124"/>
+    <property name="key" value="693c0a55-9ef0-4302-8bc3-f9b2db93e124"/>
 </bean>
 
-<!-- Official OBA Alexa (for Amazon Echo, etc.) App API Key -->
+<!-- Alexa Skill key -->
 <bean class="org.onebusaway.users.impl.CreateApiKeyAction">
- 	<property name="key" value="e5c0e97a-729d-4fdb-a3ca-2fccb20ac3ab"/>
+    <property name="key" value="e5c0e97a-729d-4fdb-a3ca-2fccb20ac3ab"/>
+</bean>
+
+<!-- Pebble Smartwatch key -->
+<bean class="org.onebusaway.users.impl.CreateApiKeyAction">
+    <property name="key" value="48d59e79-ed33-4be0-9db3-912f8f521fec"/>
 </bean>
 
 {api_testing}

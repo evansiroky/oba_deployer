@@ -3,6 +3,7 @@ try:
 except NameError: 
     pass
 
+import csv
 from datetime import datetime
 import os
 import time
@@ -17,13 +18,10 @@ from transitfeed.problems import ProblemReporter, TYPE_WARNING
 import requests
 import transitfeed
 
-from oba_deployer import CONFIG_DIR, CONFIG_TEMPLATE_DIR, DL_DIR, REPORTS_DIR
+from oba_deployer import CONFIG_DIR, CONFIG_TEMPLATE_DIR, DL_DIR, GTFS_FILES_CSV, REPORTS_DIR
 from oba_deployer.feedvalidator import HTMLCountingProblemAccumulator
 from oba_deployer.oba import OBAFab
 
-
-gtfs_file_name_raw = 'google_transit_{0}.zip'.format(datetime.now().strftime('%Y-%m-%d'))
-gtfs_file_name = os.path.join(DL_DIR, gtfs_file_name_raw)
 
 conf_helper = ConfigHelper(CONFIG_DIR, CONFIG_TEMPLATE_DIR)
 
@@ -38,32 +36,34 @@ class GtfsFab(OBAFab):
                                                         'onebusaway-transit-data-federation-builder')
         
     def update_gtfs(self):
-        '''Uploads the downloaded gtfs zip file to the server and builds a new bundle.
+        '''Uploads the downloaded gtfs zip files and bundle.xml to the server and builds a new bundle.
         '''
-        
-        remote_gtfs_file = unix_path_join(self.data_dir, gtfs_file_name_raw)
         
         # check if data folders exists
         if not exists(self.data_dir):
             run('mkdir {0}'.format(self.data_dir))
-            
-        # remove old gtfs file (if needed)
-        if exists(remote_gtfs_file):
-            run('rm {0}'.format(remote_gtfs_file))
-        
-        # upload new file
-        put(gtfs_file_name, 'data')
+
+        reader = csv.DictReader(open(GTFS_FILES_CSV))
+        for bundle in reader:
+            gtfs_file_name = '{0}-gtfs.zip'.format(bundle['bundle_name'])
+            remote_gtfs_file = unix_path_join(self.data_dir, gtfs_file_name)
+
+            # remove old gtfs file (if needed)
+            if exists(remote_gtfs_file):
+                run('rm {0}'.format(remote_gtfs_file))
+
+            # upload new file
+            put(os.path.join(DL_DIR, gtfs_file_name), 'data')
+
+        # upload bundle.xml
+        put(os.path.join(CONFIG_DIR, 'bundle.xml'), 'data')
         
         # create new bundle
-        bundle_main = '.'.join(['org',
-                                'onebusaway',
-                                'transit_data_federation',
-                                'bundle',
-                                'FederatedTransitDataBundleCreatorMain'])
+        bundle_main = 'org.onebusaway.transit_data_federation.bundle.FederatedTransitDataBundleCreatorMain'
         more_args = self.gtfs_conf.get('extra_bundle_build_args')
         with cd(self.federation_builder_folder):
             run('java -classpath .:target/* {0} {1} {2} {3}'.format(bundle_main,
-                                                                    remote_gtfs_file,
+                                                                    unix_path_join(self.data_dir, 'bundle.xml'),
                                                                     self.bundle_dir,
                                                                     more_args))
             
@@ -72,11 +72,18 @@ class GtfsFab(OBAFab):
         '''
         
         # prepare update script
-        refresh_settings = dict(gtfs_dl_file=unix_path_join(self.data_dir, 'google_transit.zip'),
-                                gtfs_static_url=self.gtfs_conf.get('gtfs_static_url'),
-                                gtfs_dl_logfile=unix_path_join(self.data_dir, 'nightly_dl.out'),
+        reader = csv.DictReader(open(GTFS_FILES_CSV))
+        gtfs_wgets = '\n'.join([
+            'wget -O {0} {1} -o {2}'.format(
+                unix_path_join(self.data_dir, '{0}-gtfs.zip'.format(bundle['bundle_name'])),
+                bundle['static_url'],
+                '{0}_nightly_dl.out'.format(bundle['bundle_name'])
+            ) for bundle in reader
+        ])
+        refresh_settings = dict(gtfs_wgets=gtfs_wgets,
                                 federation_builder_folder=self.federation_builder_folder,
                                 bundle_dir=self.bundle_dir,
+                                bundle_xml=unix_path_join(self.data_dir, 'bundle.xml'),
                                 extra_args=self.gtfs_conf.get('extra_bundle_build_args'),
                                 user=self.user,
                                 cron_email=self.aws_conf.get('cron_email'),
@@ -102,15 +109,12 @@ class GtfsFab(OBAFab):
         crontab_update(gtfs_refresh_cron, 'gtfs_refresh_cron')
     
 
-def validate_gtfs():
-    '''Download (if needed) and validate the latest static GTFS file.
+def validate_static_gtfs_files():
+    '''Download and validate the latest static GTFS file(s) for each defined agency.
     
     Returns:
-        boolean: True if no errors in GTFS.
+        boolean: True if no errors in any of the GTFS files.
     '''
-    
-    # get gtfs settings
-    gtfs_conf = conf_helper.get_config('gtfs')
     
     # Create the `downloads` directory if it doesn't exist
     if not os.path.exists(DL_DIR):
@@ -119,10 +123,29 @@ def validate_gtfs():
     # Create the `reports` directory if it doesn't exist
     if not os.path.exists(REPORTS_DIR):
         os.makedirs(REPORTS_DIR)
-    
+
+    reader = csv.DictReader(open(GTFS_FILES_CSV))
+    return all([validate_local_gtfs_file(bundle) for bundle in reader])
+
+
+def validate_local_gtfs_file(bundle):
+    '''Downloads and validates a single GTFS file.
+
+    Returns:
+        boolean: True if no errors were found in the GTFS file.
+    '''
+
+    name = bundle['bundle_name']
+    url = bundle['static_url']
+
     # download gtfs
-    print('Downloading GTFS')
-    r = requests.get(gtfs_conf.get('gtfs_static_url'), stream=True)
+    print '---------------------------------------'
+    print('Validating GTFS for: {0}'.format(name))
+
+
+    print('Downloading GTFS from {0}'.format(url))
+    gtfs_file_name = os.path.join(DL_DIR, '{0}-gtfs.zip'.format(name))
+    r = requests.get(url, stream=True)
     with open(gtfs_file_name, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024): 
             if chunk:  # filter out keep-alive new chunks
@@ -130,7 +153,6 @@ def validate_gtfs():
                 f.flush()
                 
     # load gtfs
-    print('Validating GTFS')
     gtfs_factory = GetGtfsFactory()
     accumulator = HTMLCountingProblemAccumulator(limit_per_type=50)
     problem_reporter = ProblemReporter(accumulator)
@@ -170,24 +192,24 @@ def validate_gtfs():
         if last_service_day < datetime.now():
             print('GTFS Feed has expired.')
             gtfs_validated = False
-        
+
+    print 'GTFS validation for {0} {1}'.format(name, 'passed' if gtfs_validated else 'failed')
+    print '---------------------------------------'
     return gtfs_validated
 
 
-def update(instance_dns_name=None, refresh_gtfs_file=False):
-    '''Update the gtfs file on the EC2 instance and tell OBA to create a new bundle.
+def update(instance_dns_name=None):
+    '''Updates the needed gtfs files and bundle.xml on the EC2 instance and tells OBA to create a new bundle.
     
     This assumes that onebusaway-transit-data-federation-builder has been installed on the server.
-    It will also download the gtfs file if it does not find it in the local downloads folder.
+    It will also download the needed gtfs files if it does not find it in the local downloads folder.
     
     Args:
         instance_dns_name (string, default=None): The EC2 instance to upload the gtfs to.
-        refresh_gtfs_file (boolean, default=False): Whether or not to refetch and validate the gtfs file.
     '''
     
-    if not os.path.exists(gtfs_file_name) or refresh_gtfs_file:
-        if not validate_gtfs():
-            raise Exception('GTFS static file validation Failed.')
+    if not validate_static_gtfs_files():
+        raise Exception('GTFS static file validation Failed.')
         
     if not instance_dns_name:
         instance_dns_name = input('Enter EC2 public dns name: ')

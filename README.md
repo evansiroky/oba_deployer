@@ -103,6 +103,7 @@ A csv file with a list of all bundles and their corresponding urls for various G
 | service_area_bounds_min_lon  | .. |
 | service_area_bounds_max_lat  | .. |
 | service_area_bounds_max_lon  | .. |
+| use_custom_xwiki  | If set to true, xwiki will be installed, if not, use the default Puget Sound xwiki |
 
 ## Running Scripts
 

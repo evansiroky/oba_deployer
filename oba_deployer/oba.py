@@ -1,3 +1,4 @@
+import csv
 try:
     input = raw_input
 except NameError: 
@@ -10,7 +11,7 @@ from fab_deploy import crontab_update
 from fabric.api import run, put, cd, sudo
 from fabric.contrib.files import exists
 
-from oba_deployer import CONFIG_DIR, CONFIG_TEMPLATE_DIR
+from oba_deployer import CONFIG_DIR, CONFIG_TEMPLATE_DIR, GTFS_FILES_CSV
 
 
 conf_helper = ConfigHelper(CONFIG_DIR, CONFIG_TEMPLATE_DIR)
@@ -44,7 +45,7 @@ class ObaInstallFab(OBAFab):
         
         with cd(self.oba_base_folder):
             run('git checkout {0}'.format(self.oba_conf.get('oba_git_branch')))
-            run('/usr/local/maven/bin/mvn clean install')
+            run('/usr/local/maven/bin/mvn clean install -DskipTests -Dlicense.skip=true')
         
     def build_webapp(self, data_dict, config_template_file, webapp):
         '''Build a webapp using maven.
@@ -69,7 +70,7 @@ class ObaInstallFab(OBAFab):
 
         # build the project using maven
         with cd(self.oba_base_folder):
-            run('/usr/local/maven/bin/mvn -am -pl {0} package'.format(webapp))
+            run('/usr/local/maven/bin/mvn -DskipTests -am -pl {0} package'.format(webapp))
 
     def make_params_from_datasource_file(self, filename):
         '''Helper to make config for a filename.
@@ -103,8 +104,32 @@ class ObaInstallFab(OBAFab):
         transit_fed_config = self.make_params_from_datasource_file('transit-data-federation-webapp-data-sources.xml')
         
         transit_fed_config['data_bundle_path'] = unix_path_join('/home', self.user, 'data', 'bundle')
-        for k in ['gtfs_rt_trip_updates_url', 'gtfs_rt_vehicle_positions_url', 'gtfs_rt_service_alerts_url']:
-            transit_fed_config[k] = self.gtfs_conf.get(k)
+
+        reader = csv.DictReader(open(GTFS_FILES_CSV))
+        realtime_config = ''
+        for row in reader:
+            if not row['trip_updates_url'] and not row['vehicle_positions_url'] and not row['service_alerts_url']:
+                # no realtime for this bundle, pass
+                pass
+
+            realtime_config += '<bean class="org.onebusaway.transit_data_federation.impl.realtime.gtfs_realtime.GtfsRealtimeSource">'
+            if row['trip_updates_url']:
+                realtime_config += '  <property name="tripUpdatesUrl" value="{0}" />'.format(row['trip_updates_url'])
+            if row['vehicle_positions_url']:
+                realtime_config += '  <property name="vehiclePositionsUrl" value="{0}" />'.format(row['vehicle_positions_url'])
+            if row['service_alerts_url']:
+                realtime_config += '  <property name="alertsUrl" value="{0}" />'.format(row['service_alerts_url'])
+
+            realtime_config += '  <property name="refreshInterval" value="30"/>'
+            realtime_config += '  <!-- Optionally configure the agency id we use to match incoming real-time data to your GTFS data -->'
+            realtime_config += '  <property name="agencyIds">'
+            realtime_config += '    <list>'
+            realtime_config += '\n      '.join(['<value>{0}</value>'.format(_id) for _id in row['mapped_agency_ids'].split(',')])
+            realtime_config += '    </list>'
+            realtime_config += '  </property>'
+            realtime_config += '</bean>'
+
+        transit_fed_config['realtime_config'] = realtime_config
         
         self.build_webapp(transit_fed_config, 
                           'transit-data-federation-webapp-data-sources.xml',
@@ -125,8 +150,11 @@ class ObaInstallFab(OBAFab):
         '''
 
         webapp_config = self.make_params_from_datasource_file('webapp-data-sources.xml')
-        webapp_config['elastic_ip'] = self.aws_conf.get('elastic_ip')
-        
+        if self.oba_conf.get('use_custom_xwiki') == 'true':
+            webapp_config['xwikiUrl'] = 'http://{0}:8081/xwiki'.format(self.aws_conf.get('elastic_ip'))
+        else:
+            webapp_config['xwikiUrl'] = 'http://wiki.onebusaway.org'
+
         self.build_webapp(webapp_config, 
                           'webapp-data-sources.xml',
                           'onebusaway-webapp')
@@ -151,15 +179,16 @@ class ObaInstallFab(OBAFab):
                                                    'target',
                                                    webapp + '.war'),
                                     tomcat_webapp_dir))
-            
+
     def start_servers(self):
         '''Starts tomcat and xwiki servers.
         '''
         
         # start servers
         run('set -m; /home/{0}/tomcat/bin/startup.sh'.format(self.user))
-        # writing output to /dev/null because logs are already written to /usr/local/xwiki/data/logs
-        sudo('set -m; sudo nohup /usr/local/xwiki/start_xwiki.sh -p 8081 > /dev/null &')
+        if self.oba_conf.get('use_custom_xwiki') == 'true':
+            # writing output to /dev/null because logs are already written to /usr/local/xwiki/data/logs
+            sudo('set -m; sudo nohup /usr/local/xwiki/start_xwiki.sh -p 8081 > /dev/null &')
         
     def stop_servers(self):
         '''Stops tomcat and xwiki servers.

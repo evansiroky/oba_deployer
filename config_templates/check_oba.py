@@ -32,7 +32,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate
 
-CONFIG_FILENAME = '/path/to/watchdog.ini'
+CONFIG_FILENAME = '/home/ec2-user/conf/watchdog.ini'
 CONFIG = ConfigParser.ConfigParser()
 CONFIG.read(CONFIG_FILENAME)
 
@@ -45,25 +45,26 @@ def get_config(key):
 # Agency ids for agencies with realtime data.
 REALTIME_AGENCIES = get_config('realtime_agencies').split(',')
 # These people get an email every time there is an alert.
-ALERT_LIST = get_config('alert_list').split(',') 
+ALERT_LIST = get_config('alert_list').split(',')
 # These people get an email every time that check_oba.py is run
 REPORT_LIST = get_config('report_list').split(',')
 FROM_ADDRESS = get_config('from_address')
 
-CSV_STATUS_FILE = get_config('csv_status_file')
-REPORT_STATUS_FILE = get_config('report_status_file')
+DATA_DIR = get_config('data_dir')
+CSV_STATUS_FILE = os.path.join(DATA_DIR, 'watchdog_status.csv')
+REPORT_STATUS_FILE = os.path.join(DATA_DIR, 'watchdog_report_status.csv')
 ROOT_URL = get_config('root_url')
 
 # If 1, report, else don't.  index 0 = Monday, 6 = Sunday
 DAYS_OF_WEEK_TO_REPORT = map(int, get_config('days_of_week_to_report').split(','))
 # The hours when a report gets sent.  SPECIFY AT LEAST TWO HOURS
-REPORT_HOURS = map(int, get_config('report_hours').split(','))  
+REPORT_HOURS = map(int, get_config('report_hours').split(','))
 # The seconds after midnight that we start and stop checking
 START_OF_DAY = int(get_config('start_of_day'))
 END_OF_DAY = int(get_config('end_of_day'))
 
 # Limiting factor for number of stops to cycle through
-FACTOR = int(get_config('stop_test_factor'))
+PCT_STOPS = int(get_config('percent_of_stops_to_check_in_each_agency'))
 
 API_KEY = get_config('api_key')
 
@@ -75,7 +76,7 @@ PASSWORD = get_config('password')
 
 
 def get_agencies(apiURL, attempts=0):
-    
+
     base = apiURL + '/api/where/agencies-with-coverage.json?'
     query = urllib.urlencode(dict(key=API_KEY))
 
@@ -93,7 +94,7 @@ def get_agencies(apiURL, attempts=0):
 
     except urllib2.URLError, e:
         return False, "Timeout when opening:  " + base + query
-    
+
     try:
         data = json.loads(response)
     except ValueError:
@@ -109,7 +110,7 @@ def get_agencies(apiURL, attempts=0):
 
 
 def get_stops(apiURL, agency, attempts=0):
-    
+
     base = apiURL + '/api/where/stop-ids-for-agency/' + agency['agencyId'] + '.json?'
     query = urllib.urlencode(dict(key=API_KEY))
 
@@ -142,11 +143,11 @@ def get_stops(apiURL, agency, attempts=0):
 
 
 def check_arrivals(apiURL, stop, arr, attempts=0):
-    
+
     base = apiURL + '/api/where/arrivals-and-departures-for-stop/' + stop + '.json?'
 
     # Checks arrivals and departures for a stop that occur only in the next 10 minutes because we don't really care about buses from the past or too far into the future.
-    query = urllib.urlencode(dict(key=API_KEY, 
+    query = urllib.urlencode(dict(key=API_KEY,
                                   minutesAfter='10',
                                   minutesBefore='0'))
 
@@ -191,7 +192,7 @@ def check_arrivals(apiURL, stop, arr, attempts=0):
 def check_for_resolution(code, description):
     # Check the OBA email to see if this code has been resolved.
     # If it has, clear the alert and send an email to everyone on the Alert list.
-    
+
     today = datetime.datetime.today()
     cutoff = today - datetime.timedelta(days=1)
 
@@ -205,38 +206,38 @@ def check_for_resolution(code, description):
     # Search for relevant messages
     # see http://tools.ietf.org/html/rfc3501#section-6.4.5
     result, data = server.search(None, '(SINCE %s)' % cutoff.strftime('%d-%b-%Y'))
-    
+
     ids = data[0]  # data is a list.
     id_list = ids.split()  # ids is a space separated string
-    
+
     resolved = False
-    
+
     for email_id in id_list:
         result, data = server.fetch(email_id, '(RFC822)')
-        
+
         msg = email.message_from_string(data[0][1])
-        
+
         # Pulls the body of the solution email.
         body = ''
         for part in msg.walk():
             if part.get_content_type() == 'text/plain':
                 body += str(part.get_payload()) + '\n'
-                
+
         if msg['Subject'].find("Re: OBA Alert!: {0}.".format(code)) > -1:
             resolved = True
             resolver = msg['From']
             time_resolved = msg['date']
             break
-                
+
     if resolved:
         clear_alert(code, description)
         resolution_msg_template = "OBA Alert: {0}, {1} \nwas resolved by {2} at {3}.\n\nSOLUTION:  {4}"
-        send_gmail(ALERT_LIST, 
+        send_gmail(ALERT_LIST,
                    resolution_msg_template.format(code,
                                                   description,
                                                   resolver,
                                                   time_resolved,
-                                                  body), 
+                                                  body),
                    "OBA Alert Resolved!: {0}.".format(code))
         return True
     else:
@@ -274,11 +275,11 @@ def clear_alert(code, description):
 
 
 def create_alert(description):
-    
+
     # Get the previous code
     status, code, existing_description = get_alert_status()
     code += 1
-    
+
     # Send the relevant emails and texts
     send_gmail(ALERT_LIST, description, "OBA Alert!: " + str(code) + '.')
 
@@ -298,7 +299,7 @@ def get_alert_status():
     If the status of the file is a 1, then the system is in alert status waiting for a response
     If the status of this file is a 0, then the system is operating normally
     """
-    
+
     if os.path.exists(CSV_STATUS_FILE):
         status_file = open(CSV_STATUS_FILE)
         reader = csv.DictReader(status_file)
@@ -311,14 +312,14 @@ def get_alert_status():
 def main():
     '''Check to see if an alert has already been sent but not addressed.
       This will prevent duplcate alerts'''
-    
+
     status, code, description = get_alert_status()
-    
+
     now = datetime.datetime.now()
     seconds_after_midnight = now.hour * 3600 + now.minute * 60 + now.second
     cur_hour = now.hour
     cur_day_of_week = now.weekday()
-    
+
     if status:
         resolved = check_for_resolution(code, description)
         if not resolved:
@@ -354,21 +355,21 @@ def main():
     report = ""
 
     for agency in agencies:
-        
+
         result, stops = get_stops(ROOT_URL, agency)
         if not result:
             report = stops
             create_alert(report)
             continue
 
-        lim = len(stops) / FACTOR
+        lim = len(stops) * PCT_STOPS
         stopIndex = 0
         counts = dict(predicted=0,
                       scheduled=0,
                       perfect=0)
-            
+
         for stop in stops:
-            
+
             stopIndex += 1
             result, message = check_arrivals(ROOT_URL, stop, counts)
             if not result:

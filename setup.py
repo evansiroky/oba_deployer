@@ -4,7 +4,7 @@ setup(
     name='oba_deployer',
     packages=find_packages(),
     install_requires=[
-        'deploy_utils>=1.0.0',
+        'deploy_utils>=1.0.1',
         'django-fab-deploy>=0.7.5',
         'fabric>=1.10.1,<2',
         'requests>=2.5.3',
@@ -21,7 +21,7 @@ setup(
             'install_oba=oba_deployer.oba:install',
 
             # oba/gtfs activation
-            'validate_gtfs=oba_deployer.gtfs:validate_gtfs',
+            'validate_gtfs=oba_deployer.gtfs:validate_static_gtfs_files',
             'update_gtfs=oba_deployer.gtfs:update',
             'start_oba=oba_deployer.oba:start',
             'install_and_start_watchdog=oba_deployer.oba:install_and_start_watchdog',

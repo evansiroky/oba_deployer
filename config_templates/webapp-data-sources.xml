@@ -44,13 +44,13 @@ xsi:schemaLocation="
 </bean>
 
 <bean id="wikiDocumentService" class="org.onebusaway.wiki.xwiki.impl.XWikiDocumentServiceImpl">
-    <property name="xwikiUrl" value="http://{elastic_ip}:8081/xwiki" />
+    <property name="xwikiUrl" value="{xwikiUrl}" />
 </bean>
 
 <bean id="wikiRenderingService" class="org.onebusaway.wiki.xwiki.impl.XWikiRenderingServiceImpl">
     <property name="wikiDocumentViewUrl" value="/onebusaway-webapp/p/%{{documentName}}.action" />
-    <property name="wikiDocumentEditUrl" value="http://{elastic_ip}:8081/xwiki/bin/edit/Main/%{{documentName}}" />
-    <property name="wikiAttachmentUrl" value="http://{elastic_ip}:8081/xwiki/bin/download/Main/%{{documentName}}/%{{attachmentName}}" />
+    <property name="wikiDocumentEditUrl" value="{xwikiUrl}/bin/edit/Main/%{{documentName}}" />
+    <property name="wikiAttachmentUrl" value="{xwikiUrl}/bin/download/Main/%{{documentName}}/%{{attachmentName}}" />
 </bean>
 
 <!-- Tells ehCache to use a different name for the cache (to avoid conflicting with other onebusaway webapps)  -->

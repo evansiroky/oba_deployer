@@ -34,12 +34,6 @@ xsi:schemaLocation="
 </bean>
 
 <!-- real-time transit data config info  -->
-<bean class="org.onebusaway.transit_data_federation.impl.realtime.gtfs_realtime.GtfsRealtimeSource">
-  <property name="tripUpdatesUrl" value="{gtfs_rt_trip_updates_url}" />
-  <property name="vehiclePositionsUrl" value="{gtfs_rt_vehicle_positions_url}" />
-  <property name="alertsUrl" value="{gtfs_rt_service_alerts_url}" />
-  <!-- Optionally set the refresh interval - how often we query the URLs, in seconds (default=30) -->
-  <property name="refreshInterval" value="30"/>
-</bean>
+{realtime_config}
 
 </beans>

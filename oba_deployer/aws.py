@@ -26,12 +26,16 @@ class AwsFab(OBAFab):
         '''
         
         # get tomcat from direct download
-        run('wget http://www.eu.apache.org/dist/tomcat/tomcat-7/v7.0.67/bin/apache-tomcat-7.0.67.tar.gz')
+        run('wget http://apache.claz.org/tomcat/tomcat-8/v8.5.38/bin/apache-tomcat-8.5.38.tar.gz')
         
         # move to a local area for better organization
-        run('tar xzf apache-tomcat-7.0.67.tar.gz')
-        run('rm -rf apache-tomcat-7.0.67.tar.gz')
-        run('mv apache-tomcat-7.0.67 tomcat')
+        run('tar xzf apache-tomcat-8.5.38.tar.gz')
+        run('rm -rf apache-tomcat-8.5.38.tar.gz')
+        run('mv apache-tomcat-8.5.38 tomcat')
+
+        # download postgres driver jar into tomcat lib
+        run('wget https://jdbc.postgresql.org/download/postgresql-42.2.5.jar')
+        run('mv postgresql-42.2.5.jar tomcat/lib')
                     
         # add logging rotation for catalina.out
         self.populate_and_upload_template_file(dict(user=self.user),
@@ -54,24 +58,25 @@ class AwsFab(OBAFab):
             sudo('chkconfig --add tomcat')
             
     def install_xwiki(self):
-        
-        run('wget http://download.forge.ow2.org/xwiki/xwiki-enterprise-jetty-hsqldb-7.3.zip')
-        
-        # move to a local area for better organization
-        sudo('unzip xwiki-enterprise-jetty-hsqldb-7.3.zip -d /usr/local')
-        run('rm xwiki-enterprise-jetty-hsqldb-7.3.zip')
-        
-        with cd('/usr/local'):
-            sudo('ln -s xwiki-enterprise-jetty-hsqldb-7.3 xwiki')
-            
-        # add init.d script
-        put(os.path.join(CONFIG_TEMPLATE_DIR, 'xwiki_init.d'), '/etc/init.d', True)
-        with cd('/etc/init.d'):
-            sudo('mv xwiki_init.d xwiki')
-            sudo('chmod 755 xwiki')
-            sudo('chown root xwiki')
-            sudo('chgrp root xwiki')
-            sudo('chkconfig --add xwiki')
+
+        if self.oba_conf.get('use_custom_xwiki') == 'true':
+            run('wget http://download.forge.ow2.org/xwiki/xwiki-enterprise-jetty-hsqldb-7.3.zip')
+
+            # move to a local area for better organization
+            sudo('unzip xwiki-enterprise-jetty-hsqldb-7.3.zip -d /usr/local')
+            run('rm xwiki-enterprise-jetty-hsqldb-7.3.zip')
+
+            with cd('/usr/local'):
+                sudo('ln -s xwiki-enterprise-jetty-hsqldb-7.3 xwiki')
+
+            # add init.d script
+            put(os.path.join(CONFIG_TEMPLATE_DIR, 'xwiki_init.d'), '/etc/init.d', True)
+            with cd('/etc/init.d'):
+                sudo('mv xwiki_init.d xwiki')
+                sudo('chmod 755 xwiki')
+                sudo('chown root xwiki')
+                sudo('chgrp root xwiki')
+                sudo('chkconfig --add xwiki')
 
     def turn_off_ipv6(self):
         '''Edits the networking settings to turn off ipv6.
@@ -93,11 +98,11 @@ def prepare_new():
     # connect to AWS and launch new instance
     aws_conf = conf_helper.get_config('aws')
     oba_conf = conf_helper.get_config('oba')
-    instance = launch_new_ec2(aws_conf)
+    instance_id, instance_public_dns_name = launch_new_ec2(aws_conf, True)
 
     # Now that the status is running, it's not yet launched.
     # The only way to tell if it's fully up is to try to SSH in.
-    aws_system = AwsFab(instance.public_dns_name, aws_conf)
+    aws_system = AwsFab(instance_public_dns_name, aws_conf, oba_conf=oba_conf)
 
     # If we've reached this point, the instance is up and running.
     print('SSH working')
@@ -106,7 +111,7 @@ def prepare_new():
     aws_system.install_custom_monitoring()
     aws_system.turn_off_ipv6()
     aws_system.install_git()
-    aws_system.install_jdk()
+    aws_system.install_jdk8()
     aws_system.install_maven()
     aws_system.install_tomcat()
     aws_system.install_xwiki()
@@ -120,4 +125,6 @@ def prepare_new():
     conf_helper.write_template(init_sql_params, init_sql_filename)
     aws_system.install_pg(init_sql_path, init_sql_filename)
 
-    return instance
+    print('New instance started with public dns name: {0}'.format(instance_public_dns_name))
+
+    return instance_public_dns_name

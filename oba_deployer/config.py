@@ -121,7 +121,7 @@ def setup_gtfs_bundle():
     bundle_beans = []
 
     for bundle in gtfs_bundles:
-        first_agency_id = bundle['agency_mappings'][0]['agency_id']
+        first_agency_id = bundle['agency_mappings'][0]['mapped_agency_id']
         bundle_beans.append('''<bean id="{0}" class="org.onebusaway.transit_data_federation.bundle.model.GtfsBundle">
             <property name="path" value="{1}" />
             <property name="defaultAgencyId" value="{2}" />
