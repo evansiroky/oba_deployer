@@ -56,6 +56,8 @@ class AwsFab(OBAFab):
             sudo('chown root tomcat')
             sudo('chgrp root tomcat')
             sudo('chkconfig --add tomcat')
+
+        sudo('update-alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java')
             
     def install_xwiki(self):
 
