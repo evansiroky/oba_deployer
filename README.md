@@ -104,6 +104,7 @@ A csv file with a list of all bundles and their corresponding urls for various G
 | service_area_bounds_max_lat  | .. |
 | service_area_bounds_max_lon  | .. |
 | use_custom_xwiki  | If set to true, xwiki will be installed, if not, use the default Puget Sound xwiki |
+| use_stop_consolidation | If set to true, it is assumed that the file `stop-consolidation.txt` exists in the config directory and should be used during the bundle building process to combine stops from different agencies |
 
 ## Running Scripts
 

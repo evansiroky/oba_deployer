@@ -49,6 +49,12 @@ def setup_gtfs_bundle():
     for each agency. Writes the bundle.xml file and a CSV file with this data.
     '''
 
+    oba_conf = conf_helper.get_config('oba')
+
+    while oba_conf.get('use_stop_consolidation') != 'false' and \
+            not os.path.exists(os.path.join(CONFIG_DIR, 'stop-consolidation.txt')):
+        input('Please create `stop-consolidation.txt` file in config dir. Press any key when done')
+
     if os.path.exists(os.path.join(CONFIG_DIR, 'bundle.xml')):
         return
 
@@ -142,6 +148,21 @@ def setup_gtfs_bundle():
             )
         ))
 
+    # add stop consolidation bean if needed
+    if oba_conf.get('use_stop_consolidation') != 'false':
+        bundle_beans.append('''<bean id="entityReplacementStrategyFactory" class="org.onebusaway.transit_data_federation.bundle.tasks.EntityReplacementStrategyFactory">
+            <property name="entityMappings">
+            <map>
+            <entry key="org.onebusaway.gtfs.model.Stop" value="{0}" />
+            </map>
+            </property>
+            </bean>
+            <bean id="entityReplacementStrategy" factory-bean="entityReplacementStrategyFactory" factory-method="create"/>'''.format(
+                unix_path_join(remote_data_dir, 'stop-consolidation.txt')
+            )
+        )
+
+    # write bundle.xml file
     conf_helper.write_template(
         {
             'bundle_beans': '\n\n'.join(bundle_beans),
@@ -156,7 +177,7 @@ def setup_all():
     '''Calls the setup of all config Items
     '''
     setup('aws')
-    setup_gtfs_bundle()
     setup('gtfs')
     setup('oba')
+    setup_gtfs_bundle()
     setup('watchdog')

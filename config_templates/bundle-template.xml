@@ -9,14 +9,4 @@
 
     {bundle_beans}
 
-    <!-- Need a mechanism to combine stops from different feeds? -->
-    <!--<bean id="entityReplacementStrategyFactory" class="org.onebusaway.transit_data_federation.bundle.tasks.EntityReplacementStrategyFactory">-->
-    <!--<property name="entityMappings">-->
-    <!--<map>-->
-    <!--<entry key="org.onebusaway.gtfs.model.Stop" value="path/to/PugetSoundStopConsolidation.wiki" />-->
-    <!--</map>-->
-    <!--</property>-->
-    <!--</bean>-->
-    <!--<bean id="entityReplacementStrategy" factory-bean="entityReplacementStrategyFactory" factory-method="create"/>-->
-
 </beans>

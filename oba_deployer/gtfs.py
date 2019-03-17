@@ -55,6 +55,9 @@ class GtfsFab(OBAFab):
             # upload new file
             put(os.path.join(DL_DIR, gtfs_file_name), 'data')
 
+        if self.oba_conf.get('use_stop_consolidation') != 'false':
+            put(os.path.join(CONFIG_DIR, 'stop-consolidation.txt'), 'data')
+
         # upload bundle.xml
         put(os.path.join(CONFIG_DIR, 'bundle.xml'), 'data')
         
